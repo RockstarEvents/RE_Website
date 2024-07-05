@@ -10,29 +10,30 @@ FormItem,
 FormLabel,
 FormMessage,
 } from "@/components/ui/form"
-import { LoginSchema } from "@/chcemas";
+import { RegisterSchema } from "@/chcemas";
 import {Input} from "@/components/ui/input"
 import { CardWrapper } from "@/components/auth/card-wrapper"
 import { Button } from "../ui/button";
 
-export const LoginForm = () => {
-    const form = useForm<z.infer<typeof LoginSchema>>({
-        resolver: zodResolver(LoginSchema),
+export const RegisterForm = () => {
+    const form = useForm<z.infer<typeof RegisterSchema>>({
+        resolver: zodResolver(RegisterSchema),
         defaultValues: {
+            name: "",
             email: "",
             password: "",
         },
     });
-const onSubmit = (values: z.infer<typeof LoginSchema>) => {
+const onSubmit = (values: z.infer<typeof RegisterSchema>) => {
     console.log(values);
     
 }
 
     return (
         <CardWrapper
-            headerLabel="Welcome"
-            backButtonLabel="Register"
-            backButtonHref="/auth/register"     >
+            headerLabel="Time to appear"
+            backButtonLabel="Already registered?"
+            backButtonHref="/auth/login"     >
             <Form {...form}>
                 <form 
                 onSubmit={form.handleSubmit(()=> {})}
@@ -40,13 +41,36 @@ const onSubmit = (values: z.infer<typeof LoginSchema>) => {
                 >
 
                     <div className="space-y-5">
-                        <FormField 
+<FormField
+                            control={form.control}
+                            name="name"
+                            render = {({field}) => (
+                                <FormItem>
+                                    <FormLabel>
+                                        Name
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Input
+                                        {...field}
+                                        placeholder=""
+                                        type="name"
+                                        
+                                        />
+
+
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+
+<FormField 
                             control={form.control}
                             name="email"
                             render = {({field}) => (
                                 <FormItem>
                                     <FormLabel>
-                                        EMAil
+                                        Email
                                     </FormLabel>
                                     <FormControl>
                                         <Input

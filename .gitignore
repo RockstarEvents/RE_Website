@@ -531,7 +531,6 @@ qrc_*.cpp
 ui_*.h
 *.qmlc
 *.jsc
-Makefile*
 *build-*
 *.qm
 *.prl
@@ -968,7 +967,6 @@ _deps
 *.dll
 
 # Fortran module files
-*.mod
 *.smod
 
 # Compiled Static libraries

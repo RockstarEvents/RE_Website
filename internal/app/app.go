@@ -27,8 +27,8 @@ func RunApp(port string) {
 	e.POST("/auth/register", userService.Register)
 	e.POST("/auth/login", userService.Login)
 
-	e.POST("/events/create", eventService.CreateEvent)
-	e.GET("/events", eventService.GetAllEvents)
+	e.POST("/events/create/:id", eventService.CreateEvent)
+	e.GET("/events/:id", eventService.GetAllEvents)
 
 	e.POST("/contacts", contactService.CreateContact)
 	e.GET("/contacts", contactService.GetAllContacts)

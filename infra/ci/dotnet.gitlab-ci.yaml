@@ -1,0 +1,13 @@
+include:
+  - local: '/ci/shared/auto_mr.yaml'
+  - local: '/ci/shared/deploy_prod.yaml'
+  - local: '/ci/shared/deploy_stage.yaml'
+  - local: '/ci/shared/stages.yaml'
+  - local: '/ci/shared/pg_migrations.yaml'
+  - local: '/ci/shared/image_creation.yaml'
+
+build:
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  stage: build
+  script:
+    - dotnet build

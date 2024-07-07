@@ -1,0 +1,13 @@
+include:
+  - local: '/ci/shared/auto_mr.yaml'
+  - local: '/ci/shared/deploy_prod.yaml'
+  - local: '/ci/shared/deploy_stage.yaml'
+  - local: '/ci/shared/stages.yaml'
+  - local: '/ci/shared/image_creation.yaml'
+
+build:
+  image: oven/bun
+  stage: build
+  script:
+    - bun install --frozen-lockfile
+    - bun run build

@@ -1,0 +1,7 @@
+stages:
+  - .pre
+  - build
+  - test
+  - create images
+  - deploy
+  - .post

@@ -1,53 +1,58 @@
 package repository
 
 import (
-	"errors"
+	"context"
 	"eventPlanner/internal/models"
-	"sync"
+	"github.com/jackc/pgx/v4"
 )
 
-// ContactRepository интерфейс для репозитория контактов
 type ContactRepository interface {
-	CreateContact(contact models.Contact) error
 	GetAllContacts() ([]models.Contact, error)
+	SelectContacts(contactIDs []string) ([]models.Contact, error)
 }
 
-// InMemoryContactRepository реализация ContactRepository в памяти
-type InMemoryContactRepository struct {
-	mu       sync.RWMutex
-	contacts []models.Contact
+type contactRepository struct {
+	conn *pgx.Conn
 }
 
-// NewContactRepository создает новый InMemoryContactRepository
-func NewContactRepository() ContactRepository {
-	return &InMemoryContactRepository{
-		contacts: []models.Contact{},
-	}
+func NewContactRepository(conn *pgx.Conn) ContactRepository {
+	return &contactRepository{conn: conn}
 }
 
-// CreateContact добавляет контакт в репозиторий
-func (r *InMemoryContactRepository) CreateContact(contact models.Contact) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *contactRepository) GetAllContacts() ([]models.Contact, error) {
+    rows, err := r.conn.Query(context.Background(), "SELECT id, username, email FROM contacts")
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
-	for _, c := range r.contacts {
-		if c.Email == contact.Email {
-			return errors.New("contact with this email already exists")
-		}
-	}
-
-	r.contacts = append(r.contacts, contact)
-	return nil
+    var contacts []models.Contact
+    for rows.Next() {
+        var contact models.Contact
+        err := rows.Scan(&contact.ID, &contact.Name, &contact.Email)
+        if err != nil {
+            return nil, err
+        }
+        contacts = append(contacts, contact)
+    }
+    return contacts, nil
 }
 
-// GetAllContacts возвращает все контакты
-func (r *InMemoryContactRepository) GetAllContacts() ([]models.Contact, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *contactRepository) SelectContacts(contactIDs []string) ([]models.Contact, error) {
+    rows, err := r.conn.Query(context.Background(), "SELECT id, username, email FROM contacts WHERE id = ANY($1::int[])", contactIDs)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
-	if len(r.contacts) == 0 {
-		return nil, errors.New("no contacts found")
-	}
-
-	return r.contacts, nil
+    var contacts []models.Contact
+    for rows.Next() {
+        var contact models.Contact
+        err := rows.Scan(&contact.ID, &contact.Name, &contact.Email)
+        if err != nil {
+            return nil, err
+        }
+        contacts = append(contacts, contact)
+    }
+    return contacts, nil
 }

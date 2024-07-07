@@ -1,52 +1,64 @@
 package repository
 
 import (
-	"errors"
-	"eventPlanner/internal/models"
-	"sync"
+    "context"
+    "errors"
+    "eventPlanner/internal/models"
+    "github.com/jackc/pgx/v4"
+    "github.com/sirupsen/logrus"
 )
 
-// EventRepository интерфейс для репозитория событий
 type EventRepository interface {
-	CreateEvent(userID int64, event models.Event) error
-	GetAllEvents(userID int64) ([]models.Event, error)
+    CreateEvent(event models.Event) error
+    GetAllEvents() ([]models.Event, error)
 }
 
-// InMemoryEventRepository реализация EventRepository в памяти
-type InMemoryEventRepository struct {
-	mu     sync.RWMutex
-	events map[int64][]models.Event
-	nextID int
+type PostgresEventRepository struct {
+    conn *pgx.Conn
 }
 
-// NewEventRepository создает новый InMemoryEventRepository
-func NewEventRepository() EventRepository {
-	return &InMemoryEventRepository{
-		events: make(map[int64][]models.Event),
-		nextID: 1,
-	}
+func NewEventRepository(conn *pgx.Conn) EventRepository {
+    return &PostgresEventRepository{conn: conn}
 }
 
-// CreateEvent добавляет событие в репозиторий для указанного пользователя
-func (r *InMemoryEventRepository) CreateEvent(userID int64, event models.Event) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	event.ID = r.nextID
-	r.nextID++
-	r.events[userID] = append(r.events[userID], event)
-	return nil
+func (r *PostgresEventRepository) CreateEvent(event models.Event) error {
+    query := `INSERT INTO events (name, shape, place, begin_time, duration) VALUES ($1, $2, $3, $4, $5)`
+    _, err := r.conn.Exec(context.Background(), query, event.NameEvent, event.Shape, event.Place, event.BeginTime, event.Duration)
+    if err != nil {
+        logrus.Errorf("Error creating event: %v", err)
+        return err
+    }
+    return nil
 }
 
-// GetAllEvents возвращает все события для указанного пользователя
-func (r *InMemoryEventRepository) GetAllEvents(userID int64) ([]models.Event, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *PostgresEventRepository) GetAllEvents() ([]models.Event, error) {
+    query := `SELECT id, name, shape, place, begin_time, duration FROM events`
+    rows, err := r.conn.Query(context.Background(), query)
+    if err != nil {
+        logrus.Errorf("Error fetching events: %v", err)
+        return nil, err
+    }
+    defer rows.Close()
 
-	events, ok := r.events[userID]
-	if !ok || len(events) == 0 {
-		return nil, errors.New("no events found for this user")
-	}
+    var events []models.Event
+    for rows.Next() {
+        var event models.Event
+        err := rows.Scan(&event.ID, &event.NameEvent, &event.Shape, &event.Place, &event.BeginTime, &event.Duration)
+        if err != nil {
+            logrus.Errorf("Error scanning event: %v", err)
+            return nil, err
+        }
+        events = append(events, event)
+    }
 
-	return events, nil
+    if rows.Err() != nil {
+        logrus.Errorf("Row error: %v", rows.Err())
+        return nil, rows.Err()
+    }
+
+    if len(events) == 0 {
+        return nil, errors.New("no events found")
+    }
+
+    return events, nil
 }

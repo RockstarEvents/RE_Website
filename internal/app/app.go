@@ -25,7 +25,7 @@ func RunApp(cfg config.Config) {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	dsn := "postgres://postgres:postgres@localhost:5432/postgres"
+	dsn := "postgres://postgres:postgres@postgres:5432/postgres"
 	conn, err := database.ConnectDB(dsn)
 	if err != nil {
 		logrus.Fatalf("Unable to connect to database: %v\n", err)

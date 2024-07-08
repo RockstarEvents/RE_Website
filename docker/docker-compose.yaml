@@ -11,6 +11,10 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
+    volumes:
+      - ./postgres-init-scripts:/docker-entrypoint-initdb.d  # Монтируем папку с скриптами
+    command: ["postgres", "-c", "log_statement=all"]  # Опционально, для отладки SQL запросов
+
       
   zookeeper:
     container_name: zookeeper
@@ -72,4 +76,30 @@ services:
     environment:
       - MINIO_ROOT_USER=minio
       - MINIO_ROOT_PASSWORD=miniopassword
+  
+  my-go-app:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    container_name: my-go-app
+    restart: always
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+      - zookeeper
+      - kafka
+      - redis
+      - minio
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: postgres
+      KAFKA_BROKER: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PASSWORD: redispassword
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: miniopassword
 

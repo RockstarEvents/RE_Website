@@ -3,7 +3,7 @@ module eventPlanner
 go 1.22.4
 
 require (
-	github.com/gorilla/mux v1.8.1
+	github.com/caarlos0/env/v6 v6.10.1
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.12.0
@@ -11,7 +11,6 @@ require (
 )
 
 require (
-	github.com/caarlos0/env/v6 v6.10.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.3 // indirect

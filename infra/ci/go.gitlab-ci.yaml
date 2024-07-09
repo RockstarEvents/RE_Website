@@ -1,0 +1,84 @@
+include:
+  - local: '/ci/shared/auto_mr.yaml'
+  - local: '/ci/shared/deploy_prod.yaml'
+  - local: '/ci/shared/deploy_stage.yaml'
+  - local: '/ci/shared/stages.yaml'
+
+build:
+  image: golang:1.20
+  stage: build
+  script:
+    - go mod download
+    - go build -o myapp ./...
+  artifacts:
+    paths:
+      - ./myapp
+    expire_in: 7 days
+
+create image stage:
+  stage: deploy
+  environment:
+    name: Staging
+  variables:
+    ENV: "Staging"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "stage"
+      when: always
+    - when: never
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:Staging .
+    - docker push $CI_REGISTRY_IMAGE:Staging
+  needs:
+    - job: build
+      artifacts: true
+
+create image prod:
+  stage: deploy
+  environment:
+    name: Production
+  variables:
+    ENV: "Production"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always
+    - when: never
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:Production .
+    - docker push $CI_REGISTRY_IMAGE:Production
+  needs:
+    - job: build
+      artifacts: true
+
+migration stage:
+  stage: deploy
+  environment:
+    name: Staging
+  variables:
+    ENV: "Staging"
+  rules:
+    - changes:
+        - /**/*.sql
+    - if: $CI_COMMIT_BRANCH == "stage"
+      when: manual
+    - when: never
+  script:
+    - ./global_migration.sh
+
+migration prod:
+  stage: deploy
+  environment:
+    name: Production
+  variables:
+    ENV: "Production"
+  rules:
+    - changes:
+        - /**/*.sql
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+    - when: never
+  script:
+    - ./global_migration.sh

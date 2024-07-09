@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"eventPlanner/internal/Router"
 	"eventPlanner/internal/config"
 	"eventPlanner/internal/database"
 	"eventPlanner/internal/repository/Implementations"
@@ -21,10 +22,6 @@ func RunApp(cfg config.Config) {
 		log.Fatalf("unable to parse ennvironment variables: %e", err)
 	}
 
-	e := echo.New()
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-
 	dsn := cfg.DataBasePath
 	conn, err := database.ConnectDB(dsn)
 	if err != nil {
@@ -34,21 +31,18 @@ func RunApp(cfg config.Config) {
 
 	userRepo := Implementations.NewUserRepository(conn)
 	eventRepo := Implementations.NewEventRepository(conn)
-	contactRepo := Implementations.NewContactRepository(conn) // Используем новый репозиторий контактов
+	contactRepo := Implementations.NewContactRepository(conn)
 
 	userService := Implementations2.NewUserService(userRepo)
 	eventService := Implementations2.NewEventService(eventRepo)
-	contactService := Implementations2.NewContactService(contactRepo) // Инициализируем сервис контактов с новым репозиторием
+	contactService := Implementations2.NewContactService(contactRepo)
 
-	// Ручки
-	e.POST("/auth/register", userService.Register)
-	e.POST("/auth/login", userService.Login)
+	e := echo.New()
 
-	e.POST("/events/create/:id", eventService.CreateEvent)
-	e.GET("/events/:id", eventService.GetAllEvents)
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
 
-	e.GET("/contacts", contactService.GetAllContacts)         // Добавляем ручку для получения всех контактов
-	e.POST("/contacts/select", contactService.SelectContacts) // Добавляем ручку для выбора контактов
+	Router.InitRouter(userService, eventService, contactService, e)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", cfg.Port)))
 }

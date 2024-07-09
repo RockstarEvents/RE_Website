@@ -6,7 +6,6 @@ CREATE TABLE users (
     status INT NOT NULL
 );
 
-DROP TABLE IF EXISTS events;
 
 
 CREATE TABLE events (
@@ -16,7 +15,7 @@ CREATE TABLE events (
     shape VARCHAR(255) NOT NULL,
     place VARCHAR(255) NOT NULL,
     begin_time TIMESTAMP NOT NULL,
-    duration duration INTERVAL NOT NULL 
+    duration VARCHAR(255) NOT NULL
 );
 
 

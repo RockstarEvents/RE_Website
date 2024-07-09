@@ -1,22 +1,18 @@
-package service
+package Implementations
 
 import (
 	"eventPlanner/internal/models"
 	"eventPlanner/internal/repository"
+	"eventPlanner/internal/service"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
-
-type UserService interface {
-	Register(c echo.Context) error
-	Login(c echo.Context) error
-}
 
 type userService struct {
 	repo repository.UserRepository
 }
 
-func NewUserService(repo repository.UserRepository) UserService {
+func NewUserService(repo repository.UserRepository) service.UserService {
 	return &userService{
 		repo: repo,
 	}

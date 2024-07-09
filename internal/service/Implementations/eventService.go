@@ -1,32 +1,24 @@
-package service
+package Implementations
 
 import (
 	"eventPlanner/internal/models"
 	"eventPlanner/internal/repository"
+	"eventPlanner/internal/service"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
 )
 
-// EventService интерфейс для сервиса событий
-type EventService interface {
-	CreateEvent(c echo.Context) error
-	GetAllEvents(c echo.Context) error
-}
-
-// eventService реализация EventService
 type eventService struct {
 	repo repository.EventRepository
 }
 
-// NewEventService создает новый eventService
-func NewEventService(repo repository.EventRepository) EventService {
+func NewEventService(repo repository.EventRepository) service.EventService {
 	return &eventService{
 		repo: repo,
 	}
 }
 
-// CreateEvent обрабатывает создание нового события
 func (s *eventService) CreateEvent(c echo.Context) error {
 	userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -44,7 +36,6 @@ func (s *eventService) CreateEvent(c echo.Context) error {
 	return c.JSON(http.StatusCreated, event)
 }
 
-// GetAllEvents обрабатывает получение всех событий
 func (s *eventService) GetAllEvents(c echo.Context) error {
 	userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {

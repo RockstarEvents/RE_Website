@@ -25,26 +25,25 @@ func NewUserService(repo repository.UserRepository) UserService {
 func (s *userService) Register(c echo.Context) error {
 	u := new(models.User)
 	if err := c.Bind(u); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
+		return c.JSON(http.StatusBadRequest, "Invalid request")
 	}
 	id, err := s.repo.CreateUser(*u)
 	if err != nil {
-		return c.JSON(http.StatusConflict, map[string]string{"message": err.Error()})
+		return c.JSON(http.StatusConflict, err.Error())
 	}
-	// TODO: user->convert-contact
 	return c.JSON(http.StatusCreated, id)
 }
 
 func (s *userService) Login(c echo.Context) error {
 	u := new(models.User)
 	if err := c.Bind(u); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
+		return c.JSON(http.StatusBadRequest, "Invalid request")
 	}
 
 	user, err := s.repo.FindUser(u.Name)
 	if err != nil || user.Password != u.Password {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"message": "Invalid username or password"})
+		return c.JSON(http.StatusUnauthorized, "Invalid username or password")
 	}
 
-	return c.JSON(http.StatusOK, user.Name)
+	return c.JSON(http.StatusOK, user.ID)
 }

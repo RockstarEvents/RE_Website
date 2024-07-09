@@ -1,52 +1,60 @@
 package repository
 
 import (
-	"errors"
-	"eventPlanner/internal/models"
-	"sync"
+    "context"
+    "eventPlanner/internal/models"
+    "github.com/jackc/pgx/v4"
 )
 
-// EventRepository интерфейс для репозитория событий
 type EventRepository interface {
-	CreateEvent(userID int64, event models.Event) error
-	GetAllEvents(userID int64) ([]models.Event, error)
+    CreateEvent(userID int64, event models.Event) error
+    GetAllEvents(userID int64) ([]models.Event, error)
 }
 
-// InMemoryEventRepository реализация EventRepository в памяти
-type InMemoryEventRepository struct {
-	mu     sync.RWMutex
-	events map[int64][]models.Event
-	nextID int
+type eventRepository struct {
+    conn *pgx.Conn
 }
 
-// NewEventRepository создает новый InMemoryEventRepository
-func NewEventRepository() EventRepository {
-	return &InMemoryEventRepository{
-		events: make(map[int64][]models.Event),
-		nextID: 1,
-	}
+func NewEventRepository(conn *pgx.Conn) EventRepository {
+    return &eventRepository{conn: conn}
 }
 
-// CreateEvent добавляет событие в репозиторий для указанного пользователя
-func (r *InMemoryEventRepository) CreateEvent(userID int64, event models.Event) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	event.ID = r.nextID
-	r.nextID++
-	r.events[userID] = append(r.events[userID], event)
-	return nil
+func (r *eventRepository) CreateEvent(userID int64, event models.Event) error {
+    query := `
+        INSERT INTO events (user_id, name_event, shape, place, begin_time, duration)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+    `
+    err := r.conn.QueryRow(context.Background(), query, userID, event.NameEvent, event.Shape, event.Place, event.BeginTime, event.Duration).Scan(&event.ID)
+    if err != nil {
+        return err
+    }
+    return nil
 }
 
-// GetAllEvents возвращает все события для указанного пользователя
-func (r *InMemoryEventRepository) GetAllEvents(userID int64) ([]models.Event, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *eventRepository) GetAllEvents(userID int64) ([]models.Event, error) {
+    query := `
+        SELECT id, name_event, shape, place, begin_time, duration
+        FROM events
+        WHERE user_id = $1
+    `
+    rows, err := r.conn.Query(context.Background(), query, userID)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
-	events, ok := r.events[userID]
-	if !ok || len(events) == 0 {
-		return nil, errors.New("no events found for this user")
-	}
-
-	return events, nil
+    var events []models.Event
+    for rows.Next() {
+        var event models.Event
+        err := rows.Scan(&event.ID, &event.NameEvent, &event.Shape, &event.Place, &event.BeginTime, &event.Duration)
+        if err != nil {
+            return nil, err
+        }
+        events = append(events, event)
+    }
+    if err := rows.Err(); err != nil {
+        return nil, err
+    }
+    return events, nil
 }

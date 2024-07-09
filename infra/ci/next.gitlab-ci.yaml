@@ -1,0 +1,38 @@
+include:
+  - local: '/ci/shared/auto_mr.yaml'
+  - local: '/ci/shared/deploy_prod.yaml'
+  - local: '/ci/shared/deploy_stage.yaml'
+  - local: '/ci/shared/stages.yaml'
+
+build:
+  image: node:18-alpine
+  stage: build
+  script:
+    - apk add --no-cache libc6-compat
+    - yarn --frozen-lockfile
+    - yarn run build
+
+
+create image:
+  stage: create images
+  rules:
+    - if: $CI_COMMIT_BRANCH == "stage"
+      when: always
+    - when: never
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:Staging .
+    - docker push $CI_REGISTRY_IMAGE:Staging
+
+create image prod:
+  stage: create images
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always
+    - when: never
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:Production .
+    - docker push $CI_REGISTRY_IMAGE:Production

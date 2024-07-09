@@ -6,14 +6,17 @@ CREATE TABLE users (
     status INT NOT NULL
 );
 
+DROP TABLE IF EXISTS events;
 
-CREATE TABLE IF NOT EXISTS events (
+
+CREATE TABLE events (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    user_id INT REFERENCES users(id),
+    name_event VARCHAR(255) NOT NULL,
     shape VARCHAR(255) NOT NULL,
     place VARCHAR(255) NOT NULL,
     begin_time TIMESTAMP NOT NULL,
-    duration VARCHAR(255) NOT NULL
+    duration duration INTERVAL NOT NULL 
 );
 
 

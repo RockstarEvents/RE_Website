@@ -2,40 +2,44 @@ package repository
 
 import (
     "context"
-    "errors"
     "eventPlanner/internal/models"
     "github.com/jackc/pgx/v4"
-    "github.com/sirupsen/logrus"
 )
 
 type EventRepository interface {
-    CreateEvent(event models.Event) error
-    GetAllEvents() ([]models.Event, error)
+    CreateEvent(userID int64, event models.Event) error
+    GetAllEvents(userID int64) ([]models.Event, error)
 }
 
-type PostgresEventRepository struct {
+type eventRepository struct {
     conn *pgx.Conn
 }
 
 func NewEventRepository(conn *pgx.Conn) EventRepository {
-    return &PostgresEventRepository{conn: conn}
+    return &eventRepository{conn: conn}
 }
 
-func (r *PostgresEventRepository) CreateEvent(event models.Event) error {
-    query := `INSERT INTO events (name, shape, place, begin_time, duration) VALUES ($1, $2, $3, $4, $5)`
-    _, err := r.conn.Exec(context.Background(), query, event.NameEvent, event.Shape, event.Place, event.BeginTime, event.Duration)
+func (r *eventRepository) CreateEvent(userID int64, event models.Event) error {
+    query := `
+        INSERT INTO events (user_id, name_event, shape, place, begin_time, duration)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+    `
+    err := r.conn.QueryRow(context.Background(), query, userID, event.NameEvent, event.Shape, event.Place, event.BeginTime, event.Duration).Scan(&event.ID)
     if err != nil {
-        logrus.Errorf("Error creating event: %v", err)
         return err
     }
     return nil
 }
 
-func (r *PostgresEventRepository) GetAllEvents() ([]models.Event, error) {
-    query := `SELECT id, name, shape, place, begin_time, duration FROM events`
-    rows, err := r.conn.Query(context.Background(), query)
+func (r *eventRepository) GetAllEvents(userID int64) ([]models.Event, error) {
+    query := `
+        SELECT id, name_event, shape, place, begin_time, duration
+        FROM events
+        WHERE user_id = $1
+    `
+    rows, err := r.conn.Query(context.Background(), query, userID)
     if err != nil {
-        logrus.Errorf("Error fetching events: %v", err)
         return nil, err
     }
     defer rows.Close()
@@ -45,20 +49,12 @@ func (r *PostgresEventRepository) GetAllEvents() ([]models.Event, error) {
         var event models.Event
         err := rows.Scan(&event.ID, &event.NameEvent, &event.Shape, &event.Place, &event.BeginTime, &event.Duration)
         if err != nil {
-            logrus.Errorf("Error scanning event: %v", err)
             return nil, err
         }
         events = append(events, event)
     }
-
-    if rows.Err() != nil {
-        logrus.Errorf("Row error: %v", rows.Err())
-        return nil, rows.Err()
+    if err := rows.Err(); err != nil {
+        return nil, err
     }
-
-    if len(events) == 0 {
-        return nil, errors.New("no events found")
-    }
-
     return events, nil
 }

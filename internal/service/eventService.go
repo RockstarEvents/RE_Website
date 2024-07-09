@@ -5,6 +5,7 @@ import (
 	"eventPlanner/internal/repository"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"strconv"
 )
 
 // EventService интерфейс для сервиса событий
@@ -27,22 +28,32 @@ func NewEventService(repo repository.EventRepository) EventService {
 
 // CreateEvent обрабатывает создание нового события
 func (s *eventService) CreateEvent(c echo.Context) error {
-	event := new(models.Event)
-	if err := c.Bind(event); err != nil {
-		return c.JSON(http.StatusBadRequest, "Invalid request")
+	userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid user ID"})
 	}
 
-	if err := s.repo.CreateEvent(*event); err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
+	event := new(models.Event)
+	if err := c.Bind(event); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
 	}
-	return c.JSON(http.StatusCreated, "event created")
+
+	if err := s.repo.CreateEvent(userID, *event); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
+	}
+	return c.JSON(http.StatusCreated, event)
 }
 
 // GetAllEvents обрабатывает получение всех событий
 func (s *eventService) GetAllEvents(c echo.Context) error {
-	events, err := s.repo.GetAllEvents()
+	userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, err.Error())
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid user ID"})
+	}
+
+	events, err := s.repo.GetAllEvents(userID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"message": err.Error()})
 	}
 	return c.JSON(http.StatusOK, events)
 }

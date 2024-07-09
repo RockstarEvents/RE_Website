@@ -2,29 +2,50 @@ version: '3.5'
 
 services:
   caddy_reverse_proxy:
-    # Use the caddy:latest image from Docker Hub
     image: caddy:latest
-    # Restart policy: restart the container unless explicitly stopped
     restart: unless-stopped
     container_name: caddy_proxy
-    # ports for Caddy
     ports:
       - 80:80
       - 443:443
     volumes:
-      # Mount the host Caddyfile
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
-    # Connect the Caddy container caddy_net
     networks:
       - caddy_net
-#    nextjs_app: //фронтенд
-#      # Remote Docker Hub image
-#      image: rosechege/nextjs-app:latest
-#      pull_policy: always
-#      restart: always
-      # Connect the container to the existing Docker network caddy_net
+
+  backend:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    depends_on:
+      - postgres
+      - zookeeper
+      - kafka
+      - redis
+      - minio
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
 
   postgres:
     image: postgres
@@ -37,13 +58,12 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     volumes:
-      - ./postgres-init-scripts:/docker-entrypoint-initdb.d  # Монтируем папку с скриптами
-    command: ["postgres", "-c", "log_statement=all"]  # Опционально, для отладки SQL запросов
+      - ./postgres-init-scripts:/docker-entrypoint-initdb.d
+    command: ["postgres", "-c", "log_statement=all"]
 
-      
   zookeeper:
+    image: zookeeper:3.6.2
     container_name: zookeeper
-    image: wurstmeister/zookeeper:latest
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
     ports:
@@ -54,17 +74,14 @@ services:
     image: wurstmeister/kafka:2.12-2.2.1
     environment:
       KAFKA_ADVERTISED_LISTENERS: >-
-        LISTENER_DOCKER_INTERNAL://kafka:19092, 
+        LISTENER_DOCKER_INTERNAL://kafka:19092,
         LISTENER_DOCKER_EXTERNAL://localhost:9092
-
       KAFKA_LISTENERS: >-
         LISTENER_DOCKER_INTERNAL://:19092,
         LISTENER_DOCKER_EXTERNAL://:9092
-
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >-
         LISTENER_DOCKER_INTERNAL:PLAINTEXT,
         LISTENER_DOCKER_EXTERNAL:PLAINTEXT
-
       KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -73,14 +90,13 @@ services:
         kafka.controller=INFO,
         kafka.producer.async.DefaultEventHandler=INFO,
         state.change.logger=INFO
-
     ports:
       - "9092:9092"
     depends_on:
       - zookeeper
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-  
+
   redis:
     image: redis:latest
     container_name: redis
@@ -101,32 +117,6 @@ services:
     environment:
       - MINIO_ROOT_USER=minio
       - MINIO_ROOT_PASSWORD=miniopassword
-  
-  my-go-app:
-    build:
-      context: ../
-      dockerfile: Dockerfile
-    container_name: my-go-app
-    restart: always
-    ports:
-      - "8082:8082"
-    depends_on:
-      - postgres
-      - zookeeper
-      - kafka
-      - redis
-      - minio
-    environment:
-      DB_HOST: postgres
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: postgres
-      KAFKA_BROKER: kafka:9092
-      REDIS_HOST: redis
-      REDIS_PASSWORD: redispassword
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: minio
-      MINIO_SECRET_KEY: miniopassword
 
 volumes:
   caddy_data:

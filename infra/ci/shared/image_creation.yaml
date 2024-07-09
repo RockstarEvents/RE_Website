@@ -1,0 +1,41 @@
+include:
+  - local: '/ci/shared/stages.yaml'
+
+create image stage:
+  tags:
+    - docker-builder
+  stage: deploy
+  environment:
+    name: Staging
+  variables:
+    ENV: "Staging"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "stage"
+      when: always
+    - when: never
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build --build-arg ENV="${ENV}" -t $CI_REGISTRY_IMAGE:Staging .
+    - docker push $CI_REGISTRY_IMAGE:Staging
+  needs:
+    - job: build
+      artifacts: true
+
+create image prod:
+  tags:
+    - docker-builder
+  stage: deploy
+  environment:
+    name: Production
+  variables:
+    ENV: "Production"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always
+    - when: never
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build --build-arg ENV="${ENV}" -t $CI_REGISTRY_IMAGE:Production .
+    - docker push $CI_REGISTRY_IMAGE:Production

@@ -1,22 +1,17 @@
-package service
+package Implementations
 
 import (
-	
 	"eventPlanner/internal/repository"
+	"eventPlanner/internal/service"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
-
-type ContactService interface {
-	GetAllContacts(c echo.Context) error
-	SelectContacts(c echo.Context) error
-}
 
 type contactService struct {
 	repo repository.ContactRepository
 }
 
-func NewContactService(repo repository.ContactRepository) ContactService {
+func NewContactService(repo repository.ContactRepository) service.ContactService {
 	return &contactService{repo: repo}
 }
 
@@ -42,7 +37,7 @@ func (s *contactService) SelectContacts(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success":          true,
+		"success":           true,
 		"selected_contacts": contacts,
 	})
 }

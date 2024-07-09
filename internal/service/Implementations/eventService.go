@@ -1,18 +1,15 @@
-package service
+package Implementations
 
 import (
 	"eventPlanner/internal/models"
 	"eventPlanner/internal/repository"
+	"eventPlanner/internal/service"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
 )
 
 // EventService интерфейс для сервиса событий
-type EventService interface {
-	CreateEvent(c echo.Context) error
-	GetAllEvents(c echo.Context) error
-}
 
 // eventService реализация EventService
 type eventService struct {
@@ -20,7 +17,7 @@ type eventService struct {
 }
 
 // NewEventService создает новый eventService
-func NewEventService(repo repository.EventRepository) EventService {
+func NewEventService(repo repository.EventRepository) service.EventService {
 	return &eventService{
 		repo: repo,
 	}

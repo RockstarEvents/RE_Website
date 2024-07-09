@@ -25,7 +25,7 @@ func RunApp(cfg config.Config) {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	dsn := "postgres://postgres:postgres@postgres:5432/postgres"
+	dsn := cfg.DataBasePath
 	conn, err := database.ConnectDB(dsn)
 	if err != nil {
 		logrus.Fatalf("Unable to connect to database: %v\n", err)
@@ -45,7 +45,7 @@ func RunApp(cfg config.Config) {
 	e.POST("/auth/login", userService.Login)
 
 	e.POST("/events/create/:id", eventService.CreateEvent)
-    e.GET("/events/:id", eventService.GetAllEvents)
+	e.GET("/events/:id", eventService.GetAllEvents)
 
 	e.GET("/contacts", contactService.GetAllContacts)         // Добавляем ручку для получения всех контактов
 	e.POST("/contacts/select", contactService.SelectContacts) // Добавляем ручку для выбора контактов
